@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#0f0f0f"/>
+<title>บันทึก OT</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+  :root {
+    --bg:#0f0f0f; --surface:#1a1a1a; --surface2:#222;
+    --border:#2e2e2e; --border2:#3a3a3a;
+    --text:#f0f0f0; --muted:#888; --muted2:#555;
+    --green:#00e5a0; --green-dim:rgba(0,229,160,0.12);
+    --amber:#f5c542; --amber-dim:rgba(245,197,66,0.12);
+    --red:#ff5c5c; --red-dim:rgba(255,92,92,0.12);
+    --radius:14px; --radius-sm:9px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;font-size:15px;min-height:100dvh;padding-bottom:5rem}
+
+  .tabs{display:flex;border-bottom:1px solid var(--border);background:rgba(15,15,15,0.95);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .tab-btn{flex:1;padding:0;border:none;background:none;color:var(--muted);font-family:'IBM Plex Sans Thai',sans-serif;font-size:14px;font-weight:500;cursor:pointer;height:52px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+  .tab-btn.active{color:var(--green);border-bottom-color:var(--green)}
+
+  .page-header{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1rem .5rem;position:sticky;top:52px;z-index:50;background:rgba(15,15,15,0.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .header-logo{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:var(--green);letter-spacing:.06em}
+  .month-nav{display:flex;align-items:center;gap:10px}
+  .nav-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;padding:4px 8px;line-height:1;border-radius:8px}
+  .nav-btn:active{color:var(--text)}
+  .month-label{font-size:15px;font-weight:500;min-width:110px;text-align:center}
+
+  .page{display:none;padding:0 1rem 1rem}
+  .page.active{display:block}
+
+  .summary{margin:.75rem 0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .summary-top{display:grid;grid-template-columns:1fr 1fr}
+  .sum-stat{padding:.9rem 1rem}
+  .sum-stat:first-child{border-right:1px solid var(--border)}
+  .sum-stat-label{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+  .sum-stat-val{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:500;color:var(--green)}
+  .summary-rows{border-top:1px solid var(--border);padding:.7rem 1rem;display:flex;flex-direction:column;gap:5px}
+  .sum-row{display:flex;justify-content:space-between;font-size:13px}
+  .sum-row span:first-child{color:var(--muted)}
+  .sum-row span:last-child{font-weight:500;color:var(--text)}
+  .sum-divider{border:none;border-top:1px solid var(--border);margin:4px 0}
+  .sum-row.total span{font-size:14px;color:var(--green)}
+
+  .days{display:flex;flex-direction:column;gap:8px}
+  .day-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .2s}
+  .day-card.has-data{border-color:var(--border2)}
+  .day-card.today{border-color:var(--green)}
+  .day-header{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem;cursor:pointer;user-select:none}
+  .day-left{display:flex;align-items:center;gap:10px}
+  .day-num{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;min-width:28px;color:var(--muted)}
+  .day-card.today .day-num{color:var(--green)}
+  .day-card.has-data .day-num{color:var(--text)}
+  .day-dow{font-size:13px;color:var(--muted)}
+  .day-dots{display:flex;gap:4px;margin-top:3px}
+  .dot{width:6px;height:6px;border-radius:50%;opacity:0;transition:opacity .2s}
+  .dot.ot{background:var(--green)}.dot.night{background:var(--amber)}.dot.show{opacity:1}
+  .day-right{display:flex;align-items:center;gap:10px}
+  .day-earn{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--green)}
+  .day-earn.zero{color:var(--muted2);font-size:13px}
+  .chevron{color:var(--muted2);font-size:16px;transition:transform .2s}
+  .chevron.open{transform:rotate(180deg)}
+  .day-body{border-top:1px solid var(--border);padding:1rem;display:none}
+  .day-body.open{display:block}
+
+  .section-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.65rem}
+  .section-label span{font-size:11px;color:var(--muted2);margin-left:4px;font-weight:400;letter-spacing:0;text-transform:none}
+
+  .ot-section{margin-bottom:1rem}
+
+  /* TIME PICKER BLOCK */
+  .time-block{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem}
+  .time-row{display:flex;align-items:center;gap:10px}
+  .time-col{display:flex;flex-direction:column;gap:4px;flex:1}
+  .time-col-label{font-size:11px;color:var(--muted)}
+  .time-input{background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:16px;padding:8px 10px;outline:none;width:100%;-webkit-appearance:none;transition:border-color .15s;text-align:center}
+  .time-input:focus{border-color:var(--green)}
+  .time-arrow{font-size:18px;color:var(--muted2);flex-shrink:0;margin-top:16px}
+
+  .time-result{margin-top:.6rem;display:flex;align-items:center;justify-content:space-between}
+  .time-result-hrs{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500}
+  .time-result-hrs.green{color:var(--green)}
+  .time-result-hrs.amber{color:var(--amber)}
+  .time-result-hrs.muted{color:var(--muted2)}
+  .time-result-earn{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--green)}
+  .time-result-earn.amber{color:var(--amber)}
+  .time-warn{font-size:12px;color:var(--red);margin-top:4px}
+
+  .sep{border:none;border-top:1px solid var(--border);margin:.75rem 0}
+  .note-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;font-size:14px;padding:9px 12px;outline:none;transition:border-color .15s}
+  .note-input:focus{border-color:var(--border2)}
+  .note-input::placeholder{color:var(--muted2)}
+
+  .photo-area{margin-top:.75rem}
+  .photo-add-btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:7px 14px;font-size:13px;color:var(--muted);cursor:pointer}
+  .photo-add-btn svg{width:14px;height:14px;flex-shrink:0}
+  .photo-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .photo-thumb{position:relative;width:76px;height:76px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border)}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover}
+  .photo-del-btn{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.7);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .day-total{display:flex;justify-content:flex-end;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;color:var(--green)}
+
+  .day-toggle{display:flex;align-items:center;gap:8px;margin-bottom:.85rem;padding-bottom:.85rem;border-bottom:1px solid var(--border)}
+  .toggle-label{font-size:13px;color:var(--muted);flex:1}
+  .toggle-label.on{color:var(--text)}
+  .switch{position:relative;width:44px;height:26px;flex-shrink:0}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:var(--border2);border-radius:26px;cursor:pointer;transition:background .2s}
+  .slider:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#888;border-radius:50%;transition:.2s}
+  input:checked+.slider{background:var(--green-dim);border:1px solid var(--green)}
+  input:checked+.slider:before{background:var(--green);transform:translateX(18px)}
+  .day-body.off-mode .ot-section,.day-body.off-mode .sep,.day-body.off-mode .photo-area,.day-body.off-mode .note-wrap{opacity:.3;pointer-events:none}
+  input[type=file]{display:none}
+
+  /* NOTEBOOK */
+  .nb-month-list{display:flex;flex-direction:column;gap:10px}
+  .nb-month-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .nb-month-header{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem;cursor:pointer;user-select:none}
+  .nb-month-name{font-size:15px;font-weight:500}
+  .nb-month-earn{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--green)}
+  .nb-month-earn.zero{color:var(--muted2)}
+  .nb-body{display:none;border-top:1px solid var(--border);padding:1rem}
+  .nb-body.open{display:block}
+  .nb-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+  .nb-stat{background:var(--surface2);border-radius:var(--radius-sm);padding:.6rem .85rem}
+  .nb-stat-label{font-size:11px;color:var(--muted);margin-bottom:2px}
+  .nb-stat-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500;color:var(--green)}
+  .nb-stat-val.amber{color:var(--amber)}
+  .nb-detail-rows{display:flex;flex-direction:column;gap:4px;margin-bottom:1rem}
+  .nb-detail-row{display:flex;justify-content:space-between;font-size:13px}
+  .nb-detail-row span:first-child{color:var(--muted)}
+  .nb-detail-row span:last-child{font-weight:500}
+  .nb-divider{border:none;border-top:1px solid var(--border);margin:8px 0}
+  .nb-note-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+  .nb-note-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;font-size:14px;padding:10px 12px;outline:none;resize:none;min-height:90px;line-height:1.6}
+  .nb-note-textarea:focus{border-color:var(--border2)}
+  .nb-note-textarea::placeholder{color:var(--muted2)}
+  .nb-day-list{margin-top:.75rem;display:flex;flex-direction:column;gap:4px}
+  .nb-day-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+  .nb-day-row:last-child{border-bottom:none}
+  .nb-day-date{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);min-width:48px}
+  .nb-day-detail{flex:1;font-size:13px;color:var(--text);line-height:1.6}
+  .nb-day-earn{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--green);white-space:nowrap}
+  .nb-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:5px;margin-right:4px;font-family:'IBM Plex Mono',monospace}
+  .nb-tag.ot{background:var(--green-dim);color:var(--green)}
+  .nb-tag.night{background:var(--amber-dim);color:var(--amber)}
+
+  .sync-bar{padding:.6rem 1rem;display:flex;align-items:center;gap:10px}
+  .sync-btn{display:flex;align-items:center;gap:7px;background:var(--green-dim);border:1px solid var(--green);border-radius:var(--radius-sm);color:var(--green);font-family:'IBM Plex Sans Thai',sans-serif;font-size:14px;font-weight:500;padding:8px 18px;cursor:pointer;transition:opacity .15s}
+  .sync-btn:active{opacity:.7}
+  .sync-btn svg{width:16px;height:16px;flex-shrink:0}
+  .sync-status{font-size:12px;color:var(--muted);flex:1}
+  .sync-status.ok{color:var(--green)}
+  .sync-status.err{color:var(--red)}
+  .sync-status.loading{color:var(--amber)}
+  .nb-empty{text-align:center;color:var(--muted2);font-size:14px;padding:2rem 0}
+</style>
+</head>
+<body>
+
+<nav class="tabs">
+  <button class="tab-btn active" onclick="switchTab('log')" id="tab-log">📋 บันทึก OT</button>
+  <button class="tab-btn" onclick="switchTab('notebook')" id="tab-notebook">📓 สมุดบันทึก</button>
+</nav>
+
+<!-- LOG PAGE -->
+<div class="page active" id="page-log">
+  <div class="page-header">
+    <div class="header-logo">OT.LOG</div>
+    <div class="month-nav">
+      <button class="nav-btn" onclick="prevMonth()">&#8249;</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button class="nav-btn" onclick="nextMonth()">&#8250;</button>
+    </div>
+  </div>
+  <div class="summary">
+    <div class="summary-top">
+      <div class="sum-stat"><div class="sum-stat-label">รวมชั่วโมง</div><div class="sum-stat-val" id="sumHrs">0</div></div>
+      <div class="sum-stat"><div class="sum-stat-label">รวมเงิน</div><div class="sum-stat-val" id="sumMoney">฿0</div></div>
+    </div>
+    <div class="summary-rows">
+      <div class="sum-row"><span>OT ธรรมดา</span><span id="sumOtLine">0 ชม. · ฿0</span></div>
+      <div class="sum-row"><span>OT กลางคืน</span><span id="sumNightLine">0 ชม. · ฿0</span></div>
+      <hr class="sum-divider"/>
+      <div class="sum-row total"><span>รวมทั้งเดือน</span><span id="sumTotal">฿0</span></div>
+    </div>
+  </div>
+  <div class="sync-bar">
+    <button class="sync-btn" onclick="syncToSheet()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c-1.66 0-3-4.03-3-9s1.34-9 3-9m0 18c1.66 0 3-4.03 3-9s-1.34-9-3-9m-9 9a9 9 0 0 1 9-9"/></svg>
+      ซิงค์ไป Google Sheet
+    </button>
+    <span class="sync-status" id="syncStatus"></span>
+  </div>
+  <div class="days" id="daysList"></div>
+</div>
+
+<!-- NOTEBOOK PAGE -->
+<div class="page" id="page-notebook">
+  <div style="padding:.9rem 0 .5rem">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--green);letter-spacing:.06em;margin-bottom:.25rem">OT.NOTEBOOK</div>
+    <div style="font-size:13px;color:var(--muted)">สรุปและบันทึกส่วนตัวแต่ละเดือน</div>
+  </div>
+  <div class="nb-month-list" id="notebookList"></div>
+</div>
+
+<script>
+const MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const DAYS=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+const DAYS_SHORT=['อา','จ','อ','พ','พฤ','ศ','ส'];
+
+const now=new Date();
+let vY=now.getFullYear(), vM=now.getMonth();
+let data={};
+let openSet=new Set();
+let nbOpenSet=new Set();
+
+function storageKey(y,m){return `ot_${y}_${m}`}
+function nbNoteKey(y,m){return `otnote_${y}_${m}`}
+function loadData(y,m){try{const r=localStorage.getItem(storageKey(y,m));return r?JSON.parse(r):{}}catch(e){return{}}}
+function saveData(y,m){try{localStorage.setItem(storageKey(y,m),JSON.stringify(data))}catch(e){}}
+function getNbNote(y,m){try{return localStorage.getItem(nbNoteKey(y,m))||''}catch(e){return''}}
+function saveNbNote(y,m,val){try{localStorage.setItem(nbNoteKey(y,m),val)}catch(e){}}
+
+function getDay(k){
+  if(!data[k])data[k]={hasOT:false,otStart:'',otEnd:'',nightStart:'',nightEnd:'',note:'',photos:[]};  if(!('hasOT' in data[k]))data[k].hasOT=false;
+  return data[k];
+}
+
+// คำนวณชั่วโมงจากเวลาเริ่ม-จบ (รองรับข้ามคืน)
+function calcHours(start, end){
+  if(!start||!end) return null;
+  const [sh,sm]=start.split(':').map(Number);
+  const [eh,em]=end.split(':').map(Number);
+  let mins=(eh*60+em)-(sh*60+sm);
+  if(mins<=0) mins+=24*60; // ข้ามคืน
+  return mins/60;
+}
+
+// ปัดเป็น 0.5 ชั่วโมง
+function roundHalf(h){return Math.round(h*2)/2}
+
+// OT ธรรมดา: ฿50/ชม, ครึ่งชม = ฿25
+function calcOtEarn(h){
+  if(!h||h<=0) return 0;
+  const r=roundHalf(h);
+  return Math.floor(r)*50+(r%1===0.5?25:0);
+}
+// OT กลางคืน: ฿75/ชม, ครึ่งชม = ฿37.50
+function calcNightEarn(h){
+  if(!h||h<=0) return 0;
+  const r=roundHalf(h);
+  return Math.floor(r)*75+(r%1===0.5?37.5:0);
+}
+
+function calcDay(rec){
+  const otH=calcHours(rec.otStart,rec.otEnd);
+  const nightH=calcHours(rec.nightStart,rec.nightEnd);
+  const otHr=otH!==null?roundHalf(otH):0;
+  const nightHr=nightH!==null?roundHalf(nightH):0;
+  const otE=calcOtEarn(otHr);
+  const nE=calcNightEarn(nightHr);
+  return{otH,nightH,otHr,nightHr,otE,nE,total:otE+nE};
+}
+
+function fmt(n){if(n===null||n===undefined)return'0';return n%1===0?String(n):n.toFixed(1)}
+function fmoney(n){return'฿'+(n%1===0?n.toLocaleString():n.toFixed(1))}
+function fhrs(n){return fmt(n)+' ชม.'}
+
+function setField(k,field,val){
+  getDay(k)[field]=val;
+  saveData(vY,vM);
+  renderAll();
+}
+function setNote(k,val){getDay(k).note=val;saveData(vY,vM);}
+function toggleHasOT(k,val){getDay(k).hasOT=val;saveData(vY,vM);renderAll();}
+function addPhoto(k,file){
+  const r=new FileReader();
+  r.onload=e=>{getDay(k).photos.push(e.target.result);saveData(vY,vM);renderAll();};
+  r.readAsDataURL(file);
+}
+function removePhoto(k,i){getDay(k).photos.splice(i,1);saveData(vY,vM);renderAll();}
+function handleFiles(k,inp){Array.from(inp.files).forEach(f=>addPhoto(k,f));inp.value='';}
+function toggleDay(k){openSet.has(k)?openSet.delete(k):openSet.add(k);renderAll();}
+function getDaysInMonth(y,m){return new Date(y,m+1,0).getDate()}
+
+function switchTab(tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='notebook') renderNotebook();
+}
+
+function toggleNbMonth(key){nbOpenSet.has(key)?nbOpenSet.delete(key):nbOpenSet.add(key);renderNotebook();}
+
+function timeResultHTML(h, earn, colorClass){
+  if(h===null) return `<div class="time-result"><span class="time-result-hrs muted">ยังไม่ได้ใส่เวลา</span></div>`;
+  const r=roundHalf(h);
+  const warn=Math.abs(h-r)>0.1?`<div class="time-warn">* ปัดเป็น ${fmt(r)} ชม.</div>`:'';
+  return `<div class="time-result">
+    <span class="time-result-hrs ${colorClass}">${fmt(r)} ชม. (${fmt(h*60|0)} นาที)</span>
+    <span class="time-result-earn ${colorClass}">${fmoney(earn)}</span>
+  </div>${warn}`;
+}
+
+function renderAll(){
+  const days=getDaysInMonth(vY,vM);
+  let totOtHr=0,totNightHr=0,totOtE=0,totNE=0;
+  let html='';
+
+  for(let d=1;d<=days;d++){
+    const k=`${vY}-${vM}-${d}`;
+    const rec=getDay(k);
+    const{otH,nightH,otHr,nightHr,otE,nE,total}=calcDay(rec);
+    totOtHr+=otHr; totNightHr+=nightHr; totOtE+=otE; totNE+=nE;
+
+    const date=new Date(vY,vM,d);
+    const dow=DAYS[date.getDay()];
+    const isToday=d===now.getDate()&&vM===now.getMonth()&&vY===now.getFullYear();
+    const isOpen=openSet.has(k);
+    const hasData=rec.hasOT||rec.otStart||rec.nightStart||rec.note||(rec.photos&&rec.photos.length>0);
+    const photos=rec.photos||[];
+
+    const photoGrid=photos.length>0?`<div class="photo-grid">${photos.map((src,i)=>`<div class="photo-thumb"><img src="${src}" loading="lazy"/><button class="photo-del-btn" onclick="removePhoto('${k}',${i})">✕</button></div>`).join('')}</div>`:'';
+
+    html+=`<div class="day-card${isToday?' today':''}${hasData?' has-data':''}">
+      <div class="day-header" onclick="toggleDay('${k}')">
+        <div class="day-left">
+          <div class="day-num">${String(d).padStart(2,'0')}</div>
+          <div>
+            <div class="day-dow">${dow}</div>
+            <div class="day-dots">
+              <div class="dot ot${rec.otStart&&rec.otEnd?' show':''}"></div>
+              <div class="dot night${rec.nightStart&&rec.nightEnd?' show':''}"></div>
+            </div>
+          </div>
+        </div>
+        <div class="day-right">
+          <div class="day-earn${total===0?' zero':''}">${total>0?fmoney(total):'—'}</div>
+          <div class="chevron${isOpen?' open':''}">⌄</div>
+        </div>
+      </div>
+      <div class="day-body${isOpen?' open':''}${rec.hasOT?'':' off-mode'}">
+        <div class="day-toggle">
+          <span class="toggle-label${rec.hasOT?' on':''}">
+            ${rec.hasOT ? 'มี OT วันนี้' : 'ไม่มี OT วันนี้'}
+          </span>
+          <label class="switch">
+            <input type="checkbox" ${rec.hasOT?'checked':''} onchange="toggleHasOT('${k}',this.checked)"/>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="ot-section">
+          <div class="section-label">OT ธรรมดา <span>ตั้งแต่ 17:00 · ฿50/ชม.</span></div>
+          <div class="time-block">
+            <div class="time-row">
+              <div class="time-col">
+                <div class="time-col-label">เริ่ม</div>
+                <input class="time-input" type="time" value="${rec.otStart||''}" onchange="setField('${k}','otStart',this.value)"/>
+              </div>
+              <div class="time-arrow">→</div>
+              <div class="time-col">
+                <div class="time-col-label">จบ</div>
+                <input class="time-input" type="time" value="${rec.otEnd||''}" onchange="setField('${k}','otEnd',this.value)"/>
+              </div>
+            </div>
+            ${timeResultHTML(otH, otE, 'green')}
+          </div>
+        </div>
+
+        <div class="ot-section">
+          <div class="section-label">OT กลางคืน <span>฿75/ชม.</span></div>
+          <div class="time-block">
+            <div class="time-row">
+              <div class="time-col">
+                <div class="time-col-label">เริ่ม</div>
+                <input class="time-input" type="time" value="${rec.nightStart||''}" onchange="setField('${k}','nightStart',this.value)"/>
+              </div>
+              <div class="time-arrow">→</div>
+              <div class="time-col">
+                <div class="time-col-label">จบ</div>
+                <input class="time-input" type="time" value="${rec.nightEnd||''}" onchange="setField('${k}','nightEnd',this.value)"/>
+              </div>
+            </div>
+            ${timeResultHTML(nightH, nE, 'amber')}
+          </div>
+        </div>
+
+        <hr class="sep"/>
+        <div class="note-wrap">
+        <div class="section-label">หมายเหตุ</div>
+        <input class="note-input" type="text" placeholder="พิมพ์หมายเหตุ..." value="${rec.note.replace(/"/g,'&quot;')}" onchange="setNote('${k}',this.value)"/>
+        </div>
+        <div class="photo-area">
+          <div class="section-label" style="margin-top:.75rem">รูปภาพ</div>
+          <label class="photo-add-btn" for="file_${k}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            แนบรูป
+          </label>
+          <input type="file" id="file_${k}" accept="image/*" multiple onchange="handleFiles('${k}',this)"/>
+          ${photoGrid}
+        </div>
+
+        ${total>0?`<div class="day-total">รวมวันนี้ ${fmoney(total)}</div>`:''}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('daysList').innerHTML=html;
+  document.getElementById('monthLabel').textContent=`${MONTHS[vM]} ${vY+543}`;
+  const totH=totOtHr+totNightHr, totM=totOtE+totNE;
+  document.getElementById('sumHrs').textContent=fhrs(totH);
+  document.getElementById('sumMoney').textContent=fmoney(totM);
+  document.getElementById('sumOtLine').textContent=`${fhrs(totOtHr)} · ${fmoney(totOtE)}`;
+  document.getElementById('sumNightLine').textContent=`${fhrs(totNightHr)} · ${fmoney(totNE)}`;
+  document.getElementById('sumTotal').textContent=fmoney(totM);
+}
+
+function renderNotebook(){
+  const seen=new Set();
+  const months=[];
+  Object.keys(localStorage).forEach(k=>{
+    const m=k.match(/^ot_(\d{4})_(\d{1,2})$/) || k.match(/^otnote_(\d{4})_(\d{1,2})$/);
+    if(m){const tag=m[1]+'_'+m[2];if(!seen.has(tag)){seen.add(tag);months.push({y:+m[1],m:+m[2]});}}
+  });
+  const curTag=vY+'_'+vM;
+  if(!seen.has(curTag)) months.push({y:vY,m:vM});
+  months.sort((a,b)=>b.y-a.y||b.m-a.m);
+
+  let html='';
+  months.forEach(({y,m})=>{
+    const mData=loadData(y,m);
+    const nbNote=getNbNote(y,m);
+    const mkey=`nb_${y}_${m}`;
+    const isOpen=nbOpenSet.has(mkey);
+    let totOtHr=0,totNightHr=0,totOtE=0,totNE=0;
+    const activeDays=[];
+    const daysInM=getDaysInMonth(y,m);
+
+    for(let d=1;d<=daysInM;d++){
+      const k=`${y}-${m}-${d}`;
+      const rec=mData[k];
+      if(!rec) continue;
+      // ensure fields exist
+      if(!rec.otStart) rec.otStart='';
+      if(!rec.otEnd) rec.otEnd='';
+      if(!rec.nightStart) rec.nightStart='';
+      if(!rec.nightEnd) rec.nightEnd='';
+      if(!rec.note) rec.note='';
+      if(!rec.photos) rec.photos=[];
+      const{otH,nightH,otHr,nightHr,otE,nE,total}=calcDay(rec);
+      if(total>0||rec.note){
+        totOtHr+=otHr; totNightHr+=nightHr; totOtE+=otE; totNE+=nE;
+        activeDays.push({d,rec,otH,nightH,otE,nE,total});
+      }
+    }
+
+    const grandTotal=totOtE+totNE;
+    const grandHrs=totOtHr+totNightHr;
+
+    let dayRows='';
+    if(activeDays.length>0){
+      activeDays.forEach(({d,rec,otH,nightH,otE,nE,total})=>{
+        const dow=DAYS_SHORT[new Date(y,m,d).getDay()];
+        let detail='';
+        if(rec.otStart&&rec.otEnd){
+          const r=roundHalf(otH);
+          detail+=`<span class="nb-tag ot">OT ${fmt(r)}ชม. ${rec.otStart}–${rec.otEnd}</span>`;
+        }
+        if(rec.nightStart&&rec.nightEnd){
+          const r=roundHalf(nightH);
+          detail+=`<span class="nb-tag night">กลางคืน ${fmt(r)}ชม. ${rec.nightStart}–${rec.nightEnd}</span>`;
+        }
+        if(rec.note) detail+=`<div style="color:var(--muted);font-size:12px;margin-top:3px">${rec.note}</div>`;
+        dayRows+=`<div class="nb-day-row">
+          <div class="nb-day-date">${dow} ${d}</div>
+          <div class="nb-day-detail">${detail}</div>
+          <div class="nb-day-earn">${total>0?fmoney(total):''}</div>
+        </div>`;
+      });
+    } else {
+      dayRows='<div style="font-size:13px;color:var(--muted2);padding:.5rem 0">ยังไม่มีข้อมูล</div>';
+    }
+
+    html+=`<div class="nb-month-card">
+      <div class="nb-month-header" onclick="toggleNbMonth('${mkey}')">
+        <div>
+          <div class="nb-month-name">${MONTHS[m]} ${y+543}</div>
+          ${grandHrs>0?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${fhrs(grandHrs)}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="nb-month-earn${grandTotal===0?' zero':''}">${grandTotal>0?fmoney(grandTotal):'—'}</div>
+          <div class="chevron${isOpen?' open':''}">⌄</div>
+        </div>
+      </div>
+      <div class="nb-body${isOpen?' open':''}">
+        <div class="nb-stats">
+          <div class="nb-stat"><div class="nb-stat-label">OT ธรรมดา</div><div class="nb-stat-val">${fmoney(totOtE)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${fhrs(totOtHr)}</div></div>
+          <div class="nb-stat"><div class="nb-stat-label">OT กลางคืน</div><div class="nb-stat-val amber">${fmoney(totNE)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${fhrs(totNightHr)}</div></div>
+        </div>
+        <div class="nb-detail-rows">
+          <div class="nb-detail-row"><span>วันที่มี OT</span><span>${activeDays.length} วัน</span></div>
+          <div class="nb-detail-row"><span>รวมชั่วโมงทั้งหมด</span><span>${fhrs(grandHrs)}</span></div>
+          <hr class="nb-divider"/>
+          <div class="nb-detail-row"><span style="font-weight:500;color:var(--text)">รวมเงินทั้งเดือน</span><span style="color:var(--green);font-size:15px">${fmoney(grandTotal)}</span></div>
+        </div>
+        <div class="nb-note-label">บันทึกส่วนตัว</div>
+        <textarea class="nb-note-textarea" placeholder="จดบันทึกเพิ่มเติม เช่น สรุปงาน ค่าใช้จ่าย หรือเหตุการณ์สำคัญในเดือนนี้..." onchange="saveNbNote(${y},${m},this.value)">${nbNote}</textarea>
+        <div class="nb-note-label" style="margin-top:.75rem">รายละเอียดแต่ละวัน</div>
+        <div class="nb-day-list">${dayRows}</div>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('notebookList').innerHTML=html||'<div class="nb-empty">ยังไม่มีข้อมูล OT</div>';
+}
+
+
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbxbaO9kttcfyaEfhg0iKTD41IFCDcExGMzEpD6rYyPuQHdpJVmdHjSfwqvOxyIIozFd/exec";
+
+async function syncToSheet(){
+  const statusEl = document.getElementById('syncStatus');
+  statusEl.className = 'sync-status loading';
+  statusEl.textContent = 'กำลังซิงค์...';
+
+  const days = getDaysInMonth(vY, vM);
+  const rows = [];
+  const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const thDays = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+  for(let d=1; d<=days; d++){
+    const k = `${vY}-${vM}-${d}`;
+    const rec = getDay(k);
+    if(!rec.hasOT) continue;
+    const {otH, nightH, otHr, nightHr, otE, nE, total} = calcDay(rec);
+    if(total === 0 && !rec.note) continue;
+    const date = new Date(vY, vM, d);
+    rows.push({
+      date: `${d}/${vM+1}/${vY+543}`,
+      dow: thDays[date.getDay()],
+      month: thMonths[vM],
+      year: vY+543,
+      otStart: rec.otStart||'-',
+      otEnd: rec.otEnd||'-',
+      otHr: otHr||0,
+      otEarn: otE||0,
+      nightStart: rec.nightStart||'-',
+      nightEnd: rec.nightEnd||'-',
+      nightHr: nightHr||0,
+      nightEarn: nE||0,
+      total: total||0,
+      note: rec.note||''
+    });
+  }
+
+  if(rows.length === 0){
+    statusEl.className = 'sync-status err';
+    statusEl.textContent = 'ไม่มีข้อมูล OT ที่จะซิงค์';
+    return;
+  }
+
+  try{
+    const res = await fetch(SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({rows})
+    });
+    statusEl.className = 'sync-status ok';
+    statusEl.textContent = `✓ ซิงค์ ${rows.length} วัน เสร็จแล้ว`;
+    setTimeout(()=>{ statusEl.textContent=''; statusEl.className='sync-status'; }, 4000);
+  } catch(err){
+    statusEl.className = 'sync-status err';
+    statusEl.textContent = 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง';
+  }
+}
+function prevMonth(){vM--;if(vM<0){vM=11;vY--;}data=loadData(vY,vM);openSet.clear();renderAll();}
+function nextMonth(){vM++;if(vM>11){vM=0;vY++;}data=loadData(vY,vM);openSet.clear();renderAll();}
+
+data=loadData(vY,vM);
+openSet.add(`${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`);
+renderAll();
+</script>
+</body>
+</html>
